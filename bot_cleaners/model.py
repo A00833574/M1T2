@@ -96,22 +96,25 @@ class RobotLimpieza(Agent):
             celdas_sucias = self.buscar_celdas_sucia(vecinos)
 
             if len(celdas_sucias) == 0:
-                compañeros = [] # Lista de compañeros
+                compañeros = []
                 for content, pos in self.model.grid.coord_iter():
                     for obj in content:
                         if isinstance(obj, RobotLimpieza) and obj.unique_id != self.unique_id:
                             compañeros.append(obj)
 
                 for robot in compañeros:
-                    vecinos = self.model.grid.get_neighbors(
+                    vecinos_compañeros = robot.model.grid.get_neighbors(
                         robot.pos, moore=True, include_center=False
                     )
-                    for vecino in vecinos:
+                    for vecino in vecinos_compañeros:
                         if isinstance(vecino, (Mueble, RobotLimpieza)):
-                            vecinos.remove(vecino)
-                    celdas_sucias = robot.buscar_celdas_sucia(vecinos)
-                    if len(celdas_sucias) > 0:
+                            vecinos_compañeros.remove(vecino)
+                    celdas_sucias_compañeros = robot.buscar_celdas_sucia(vecinos_compañeros)
+                    if len(celdas_sucias_compañeros) > 0:
                         self.moverse_a(robot.pos)
+                        break
+                    else:
+                        self.seleccionar_nueva_pos(vecinos)
                         break
             else:
                 self.limpiar_una_celda(celdas_sucias)
