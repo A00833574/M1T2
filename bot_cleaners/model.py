@@ -6,12 +6,11 @@ from mesa.datacollection import DataCollector
 from math import sqrt
 
 import numpy as np
-import time
+
 
 class Cargador(Agent):
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)
-
 
 
 class Celda(Agent):
@@ -78,7 +77,6 @@ class RobotLimpieza(Agent):
         return celdas_sucias
 
     def step(self):
-
         if self.cargando:
             if self.carga < 100:
                 self.carga += 1
@@ -99,7 +97,10 @@ class RobotLimpieza(Agent):
                 compañeros = []
                 for content, pos in self.model.grid.coord_iter():
                     for obj in content:
-                        if isinstance(obj, RobotLimpieza) and obj.unique_id != self.unique_id:
+                        if (
+                            isinstance(obj, RobotLimpieza)
+                            and obj.unique_id != self.unique_id
+                        ):
                             compañeros.append(obj)
 
                 for robot in compañeros:
@@ -109,7 +110,9 @@ class RobotLimpieza(Agent):
                     for vecino in vecinos_compañeros:
                         if isinstance(vecino, (Mueble, RobotLimpieza)):
                             vecinos_compañeros.remove(vecino)
-                    celdas_sucias_compañeros = robot.buscar_celdas_sucia(vecinos_compañeros)
+                    celdas_sucias_compañeros = robot.buscar_celdas_sucia(
+                        vecinos_compañeros
+                    )
                     if len(celdas_sucias_compañeros) > 0:
                         self.moverse_a(robot.pos)
                         break
@@ -120,7 +123,7 @@ class RobotLimpieza(Agent):
                 self.limpiar_una_celda(celdas_sucias)
 
         if self.carga < 25:
-            cargadores = [ ]
+            cargadores = []
             for content, pos in self.model.grid.coord_iter():
                 for obj in content:
                     if isinstance(obj, Cargador):
@@ -129,7 +132,6 @@ class RobotLimpieza(Agent):
             self.moverse_a(cargador.pos)
             if self.pos == cargador.pos:
                 self.cargando = True
-
 
     def advance(self):
         if self.pos != self.sig_pos:
@@ -160,14 +162,7 @@ class Habitacion(Model):
         self.grid = MultiGrid(M, N, False)
         self.schedule = SimultaneousActivation(self)
 
-        self.start_time = None
-        self.elapsed_time = None
-
-        posiciones_disponibles = []
-        for i in range(M):
-            for j in range(N):
-                posiciones_disponibles.append((i, j))
-        
+        posiciones_disponibles = [pos for _, pos in self.grid.coord_iter()]
 
         # Posicionamiento de cargadores
 
@@ -245,19 +240,11 @@ class Habitacion(Model):
             },
         )
 
-    
-    def get_simulation_info(self):
-        return {
-            "elapsed_time": time.time() - self.start_time,
-            "total_movements": sum(agent.movimientos for agent in self.schedule.agents if isinstance(agent, RobotLimpieza)),
-            "total_recharges": sum(agent.total_recharges for agent in self.schedule.agents if isinstance(agent, RobotLimpieza)),
-        }
-    
     def step(self):
-        self.datacollector.collect(self)
+        if self.todoLimpio():
+            self.running = False
 
-        if self.start_time is None:
-            self.start_time = time.time()
+        self.datacollector.collect(self)
 
         for agent in self.schedule.agents:
             agent.step()
@@ -265,29 +252,12 @@ class Habitacion(Model):
         for agent in self.schedule.agents:
             agent.advance()
 
-        if self.todoLimpio() and not self.total_movements:
-            self.datacollector.collect(self)
-            self.running = False  # Stop the simulation
-
     def todoLimpio(self):
-        for content, x, y in self.grid.coord_iter():
+        for content, pos in self.grid.coord_iter():
             for obj in content:
                 if isinstance(obj, Celda) and obj.sucia:
                     return False
-        
-        if all([not obj.sucia for obj in self.grid.get_cell_list_contents()]):
-            self.elapsed_time = time.time() - self.start_time
-            print(f"Everything is clean! Elapsed Time: {self.elapsed_time:.2f} seconds")
-            return True
-    
-        return False
-    
-    def get_simulation_info(self):
-        return {
-            "elapsed_time": self.elapsed_time,
-            "total_movements": sum(agent.movimientos for agent in self.schedule.agents),
-            "total_recharges": sum(1 for agent in self.schedule.agents if agent.carga == 100),
-        }
+        return True
 
 
 def get_grid(model: Model) -> np.ndarray:
@@ -332,15 +302,3 @@ def get_movimientos(agent: Agent) -> dict:
         return {agent.unique_id: agent.movimientos}
     # else:
     #    return 0
-
-if __name__ == "__main__":
-    model = Habitacion(...)  # Initialize your model here
-
-    while not model.todoLimpio():
-        model.step()
-
-    total_movements = sum(agent.movimientos for agent in model.schedule.agents)
-    print(f"Total movements by all agents: {total_movements}")
-
-    total_recharges = sum(1 for agent in model.schedule.agents if agent.carga == 100)
-    print(f"Total complete recharges: {total_recharges}")
