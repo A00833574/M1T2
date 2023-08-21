@@ -55,13 +55,7 @@ def agent_portrayal(agent):
         return portrayal
 
 
-grid = mesa.visualization.CanvasGrid(agent_portrayal, 20, 20, 400, 400)
-chart_celdas = mesa.visualization.ChartModule(
-    [{"Label": "CeldasSucias", "Color": "#36A2EB", "label": "Celdas Sucias"}],
-    50,
-    200,
-    data_collector_name="datacollector",
-)
+
 
 model_params = {
     "num_agentes": mesa.visualization.Slider(
@@ -98,6 +92,34 @@ model_params = {
     "N": 20,
 }
 
+grid = mesa.visualization.CanvasGrid(agent_portrayal, 20, 20, 400, 400)
+chart_celdas = mesa.visualization.ChartModule(
+    [{"Label": "CeldasSucias", "Color": "#36A2EB", "label": "Celdas Sucias"}],
+    50,
+    200,
+    data_collector_name="datacollector",
+)
+# Create the chart visualization for total movements
+chart_movimientos = mesa.visualization.ChartModule(
+    [{"Label": "TotalMovimientos", "Color": "#FF4E00", "label": "Total Movimientos"}],
+    50,
+    200,
+    data_collector_name="datacollector",
+)
+
+# Create the chart visualization for recargas completas
+chart_recargas = mesa.visualization.ChartModule(
+    [{"Label": "RecargasCompletas", "Color": "#4CAF50", "label": "Recargas Completas"}],
+    50,
+    200,
+    data_collector_name="datacollector",
+)
+
+# Combine all visualization modules
 server = mesa.visualization.ModularServer(
-    Habitacion, [grid, chart_celdas], "botCleaner", model_params, 8521
+    Habitacion,
+    [grid, chart_celdas, chart_movimientos, chart_recargas],
+    "botCleaner",
+    model_params,
+    8521
 )

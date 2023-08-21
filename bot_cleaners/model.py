@@ -12,17 +12,14 @@ class Cargador(Agent):
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)
 
-
 class Celda(Agent):
     def __init__(self, unique_id, model, suciedad: bool = False):
         super().__init__(unique_id, model)
         self.sucia = suciedad
 
-
 class Mueble(Agent):
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)
-
 
 class RobotLimpieza(Agent):
     def __init__(self, unique_id, model):
@@ -77,6 +74,7 @@ class RobotLimpieza(Agent):
         return celdas_sucias
 
     def step(self):
+
         if self.cargando:
             if self.carga < 100:
                 self.carga += 1
@@ -97,10 +95,7 @@ class RobotLimpieza(Agent):
                 compañeros = []
                 for content, pos in self.model.grid.coord_iter():
                     for obj in content:
-                        if (
-                            isinstance(obj, RobotLimpieza)
-                            and obj.unique_id != self.unique_id
-                        ):
+                        if isinstance(obj, RobotLimpieza) and obj.unique_id != self.unique_id:
                             compañeros.append(obj)
 
                 for robot in compañeros:
@@ -110,9 +105,7 @@ class RobotLimpieza(Agent):
                     for vecino in vecinos_compañeros:
                         if isinstance(vecino, (Mueble, RobotLimpieza)):
                             vecinos_compañeros.remove(vecino)
-                    celdas_sucias_compañeros = robot.buscar_celdas_sucia(
-                        vecinos_compañeros
-                    )
+                    celdas_sucias_compañeros = robot.buscar_celdas_sucia(vecinos_compañeros)
                     if len(celdas_sucias_compañeros) > 0:
                         self.moverse_a(robot.pos)
                         break
@@ -123,7 +116,7 @@ class RobotLimpieza(Agent):
                 self.limpiar_una_celda(celdas_sucias)
 
         if self.carga < 25:
-            cargadores = []
+            cargadores = [ ]
             for content, pos in self.model.grid.coord_iter():
                 for obj in content:
                     if isinstance(obj, Cargador):
@@ -132,6 +125,7 @@ class RobotLimpieza(Agent):
             self.moverse_a(cargador.pos)
             if self.pos == cargador.pos:
                 self.cargando = True
+
 
     def advance(self):
         if self.pos != self.sig_pos:
@@ -161,6 +155,17 @@ class Habitacion(Model):
 
         self.grid = MultiGrid(M, N, False)
         self.schedule = SimultaneousActivation(self)
+        
+        self.datacollector = DataCollector(
+            model_reporters={
+                "Grid": get_grid,
+                "Cargas": get_cargas,
+                "CeldasSucias": get_sucias,
+                "TiempoLimpiezaCompleta": self.todoLimpio,
+                "TotalMovimientos": get_movimientos,
+                "RecargasCompletas": get_cargas,
+            },
+        )
 
         posiciones_disponibles = [pos for _, pos in self.grid.coord_iter()]
 
@@ -232,14 +237,12 @@ class Habitacion(Model):
             self.grid.place_agent(robot, pos_inicial_robots[id])
             self.schedule.add(robot)
 
-        self.datacollector = DataCollector(
-            model_reporters={
-                "Grid": get_grid,
-                "Cargas": get_cargas,
-                "CeldasSucias": get_sucias,
-            },
-        )
+    def get_total_movimientos(model: Model):
+        return sum([agent.movimientos for agent in model.schedule.agents])
 
+    def get_recargas_completas(model: Model):
+        return sum([1 for agent in model.schedule.agents if agent.carga == 100])
+    
     def step(self):
         if self.todoLimpio():
             self.running = False
