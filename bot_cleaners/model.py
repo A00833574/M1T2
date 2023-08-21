@@ -239,6 +239,9 @@ class Habitacion(Model):
         )
 
     def step(self):
+        if self.todoLimpio():
+            self.running = False
+        
         self.datacollector.collect(self)
 
         for agent in self.schedule.agents:
@@ -248,7 +251,7 @@ class Habitacion(Model):
             agent.advance()
 
     def todoLimpio(self):
-        for content, x, y in self.grid.coord_iter():
+        for content, pos in self.grid.coord_iter():
             for obj in content:
                 if isinstance(obj, Celda) and obj.sucia:
                     return False
