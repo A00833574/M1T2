@@ -128,7 +128,7 @@ class RobotLimpieza(Agent):
 
 
     def advance(self):
-        if self.pos != self.sig_pos:
+        if not self.cargando and self.pos != self.sig_pos:
             self.movimientos += 1
 
         if not self.cargando:
@@ -159,11 +159,10 @@ class Habitacion(Model):
         self.datacollector = DataCollector(
             model_reporters={
                 "Grid": get_grid,
-                "Cargas": get_cargas,
+                "Cargas": get_recargas_completas,
                 "CeldasSucias": get_sucias,
                 "TiempoLimpiezaCompleta": self.todoLimpio,
-                "TotalMovimientos": get_movimientos,
-                "RecargasCompletas": get_cargas,
+                "TotalMovimientos": get_total_movimientos,
             },
         )
 
@@ -236,12 +235,6 @@ class Habitacion(Model):
             robot = RobotLimpieza(id, self)
             self.grid.place_agent(robot, pos_inicial_robots[id])
             self.schedule.add(robot)
-
-    def get_total_movimientos(model: Model):
-        return sum([agent.movimientos for agent in model.schedule.agents])
-
-    def get_recargas_completas(model: Model):
-        return sum([1 for agent in model.schedule.agents if agent.carga == 100])
     
     def step(self):
         if self.todoLimpio():
@@ -280,11 +273,6 @@ def get_grid(model: Model) -> np.ndarray:
                 grid[x][y] = int(obj.sucia)
     return grid
 
-
-def get_cargas(model: Model):
-    return [(agent.unique_id, agent.carga) for agent in model.schedule.agents]
-
-
 def get_sucias(model: Model) -> int:
     """
     Método para determinar el número total de celdas sucias
@@ -300,8 +288,8 @@ def get_sucias(model: Model) -> int:
     return sum_sucias / model.num_celdas_sucias
 
 
-def get_movimientos(agent: Agent) -> dict:
-    if isinstance(agent, RobotLimpieza):
-        return {agent.unique_id: agent.movimientos}
-    # else:
-    #    return 0
+def get_total_movimientos(model: Model):
+    return sum([agent.movimientos for agent in model.schedule.agents])
+
+def get_recargas_completas(model: Model):
+    return sum([1 for agent in model.schedule.agents if agent.carga == 100])

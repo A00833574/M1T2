@@ -109,7 +109,7 @@ chart_movimientos = mesa.visualization.ChartModule(
 
 # Create the chart visualization for recargas completas
 chart_recargas = mesa.visualization.ChartModule(
-    [{"Label": "RecargasCompletas", "Color": "#4CAF50", "label": "Recargas Completas"}],
+    [{"Label": "Cargas", "Color": "#4CAF50", "label": "Cargas"}],
     50,
     200,
     data_collector_name="datacollector",
